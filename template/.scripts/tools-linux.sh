@@ -1,4 +1,4 @@
-# Strumenti per il progetto Space Invaders su Linux: g++, cmake, make, curl (per gli aggiornamenti) e ncurses.
+# Strumenti per il progetto Space Invaders su Linux: g++, cmake, make, awk (per i controlli), curl (per gli aggiornamenti) e ncurses.
 # Se mancano propone il comando del package manager e lo lancia con sudo solo dopo conferma.
 # Lo legge check.sh (source) a ogni compilazione: usa ok, fail, die e ask di check.sh.
 
@@ -10,6 +10,7 @@ tools_missing() {
     command -v g++ >/dev/null || echo " g++"
     command -v cmake >/dev/null || echo " cmake"
     command -v make >/dev/null || echo " make"
+    command -v awk >/dev/null || echo " awk"
     command -v curl >/dev/null || echo " curl"
     # ncurses: si prova a compilare e linkare un programma minimo
     command -v g++ >/dev/null && echo "$CURSES_TEST" | g++ -x c++ - -o /dev/null -lncurses 2>/dev/null ||
@@ -20,15 +21,15 @@ install_tools() {
     local cmd sudo=""
     [[ $EUID -ne 0 ]] && sudo="sudo"
     if command -v apt-get >/dev/null; then
-        cmd="apt-get install -y g++ cmake make libncurses-dev curl"
+        cmd="apt-get install -y g++ cmake make libncurses-dev gawk curl"
     elif command -v dnf >/dev/null; then
-        cmd="dnf install -y gcc-c++ cmake make ncurses-devel curl"
+        cmd="dnf install -y gcc-c++ cmake make ncurses-devel gawk curl"
     elif command -v pacman >/dev/null; then
-        cmd="pacman -S --needed --noconfirm gcc cmake make ncurses curl"
+        cmd="pacman -S --needed --noconfirm gcc cmake make ncurses gawk curl"
     elif command -v zypper >/dev/null; then
-        cmd="zypper install -y gcc-c++ cmake make ncurses-devel curl"
+        cmd="zypper install -y gcc-c++ cmake make ncurses-devel gawk curl"
     else
-        die "distribuzione non riconosciuta: installa a mano g++, cmake, make, curl e la libreria di sviluppo di ncurses."
+        die "distribuzione non riconosciuta: installa a mano g++, cmake, make, awk, curl e la libreria di sviluppo di ncurses."
     fi
     echo "Comando di installazione: $sudo $cmd"
     ask "Lo eseguo?" || die "installa gli strumenti mancanti e rilancia."

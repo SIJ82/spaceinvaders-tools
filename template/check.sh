@@ -15,12 +15,12 @@ die()  { printf '\033[31mErrore:\033[0m %s\n' "$1" >&2; exit 1; }
 ask()  { local r; read -r -p "$1 [s/n] " r && [[ $r == [sSyY]* ]]; }
 
 # --- aggiornamenti ---------------------------------------------------------------
-# vero se la versione $1 è più recente della $2 (sort -V non c'è su macOS)
+# vero se la versione $1 è più recente della $2 (sort -V non c'è su macOS); senza awk (installato poi con gli strumenti) falso
 newer() {
     awk -v a="$1" -v b="$2" 'BEGIN {
         split(a, x, "."); split(b, y, ".")
         for (i = 1; i <= 3; i++) { if (x[i] + 0 != y[i] + 0) exit !(x[i] + 0 > y[i] + 0) }
-        exit 1 }'
+        exit 1 }' 2>/dev/null
 }
 
 same() { [[ -f $1 && -f $2 && "$(<"$1")" == "$(<"$2")" ]]; }
@@ -74,7 +74,7 @@ check_sources() {
             echo "$f:1:1: error: $f è fuori posto (gli header vanno in include/, i .cpp in src/)"
         done
         awk -v files="${all[*]}" -f .scripts/rules.awk "${files[@]}"
-    )
+    ) || die "controllo del codice non riuscito (manca awk?)."
     shopt -u nullglob
     if [[ -n $out ]]; then
         echo "$out"
