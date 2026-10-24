@@ -1,8 +1,8 @@
 ﻿# Setup per il progetto Space Invaders (Programmazione A.A. 2026/27) su Windows.
 # Controlla MSYS2 e i pacchetti UCRT64 (g++, cmake, make, PDCurses): se mancano propone di installarli,
-# aggiunge C:\msys64\ucrt64\bin al PATH dell'utente, poi crea lo scheletro del progetto nella cartella
+# aggiunge C:\msys64\ucrt64\bin al PATH dell'utente, poi crea il progetto dal template nella cartella
 # indicata, se è vuota, e prova a compilarlo.
-# Uso: setup-windows.bat [cartella]   (default: spaceinvaders)
+# Uso: setup-windows.bat [cartella]   (default: spaceinvaders): il .bat lo scarica la prima volta e lo lancia.
 
 param([string]$Dir = "spaceinvaders")
 
@@ -107,96 +107,21 @@ if ((Test-Path $Dir) -and (Get-ChildItem -Force $Dir | Select-Object -First 1)) 
     Write-Host "La cartella $Dir non è vuota: non creo niente."
     exit 0
 }
-New-Item -ItemType Directory -Force "$Dir\include", "$Dir\src", "$Dir\.vscode" | Out-Null
+New-Item -ItemType Directory -Force "$Dir\include" | Out-Null
 
-# file senza BOM e con a capo \n, uguali a quelli creati su Linux e macOS
-function Write-File($path, $text) {
-    [IO.File]::WriteAllText((Join-Path (Resolve-Path $Dir) $path), $text.Replace("`r`n", "`n"))
+# il template sta accanto allo script (clone del repo, test) o si scarica dall'archivio del tag di questa versione;
+# curl e tar di Windows con il percorso completo: nel PATH ora c'è prima MSYS2
+$src = Join-Path $PSScriptRoot "template"
+if (-not (Test-Path $src)) {
+    $tmp = Join-Path $env:TEMP "spaceinvaders-tools"
+    Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory $tmp | Out-Null
+    & "$env:SystemRoot\System32\curl.exe" -fsSL -o "$tmp\template.tar.gz" "https://github.com/$REPO/archive/refs/tags/v$VERSION.tar.gz"
+    if ($LASTEXITCODE -eq 0) { & "$env:SystemRoot\System32\tar.exe" -xzf "$tmp\template.tar.gz" -C $tmp }
+    if ($LASTEXITCODE -ne 0) { Die "download del template non riuscito." }
+    $src = Join-Path (Get-ChildItem $tmp -Directory)[0].FullName "template"
 }
-
-Write-File "CMakeLists.txt" @'
-cmake_minimum_required(VERSION 3.16)
-project(SpaceInvaders CXX)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-# tutti i .cpp in src/ (anche quelli aggiunti dopo), gli header in include/
-file(GLOB SOURCES CONFIGURE_DEPENDS src/*.cpp)
-add_executable(spaceinvaders ${SOURCES})
-target_include_directories(spaceinvaders PRIVATE include)
-target_compile_options(spaceinvaders PRIVATE -Wall -Wextra)
-
-if(WIN32)
-    # Windows (MSYS2 UCRT64): PDCurses
-    find_path(CURSES_INCLUDE_DIR curses.h PATH_SUFFIXES pdcurses REQUIRED)
-    # la versione per console (libpdcurses.a apre una finestra sua), statica: l'eseguibile parte senza DLL accanto
-    find_library(CURSES_LIBRARY libpdcurses_wincon.a REQUIRED)
-    target_include_directories(spaceinvaders PRIVATE ${CURSES_INCLUDE_DIR})
-    # la PDCurses di MSYS2 è compilata in UTF-8: senza questa define non si linka
-    target_compile_definitions(spaceinvaders PRIVATE PDC_FORCE_UTF8)
-    # winmm: PDCurses la usa per beep()
-    target_link_libraries(spaceinvaders PRIVATE ${CURSES_LIBRARY} winmm -static)
-else()
-    # Linux e macOS: ncurses
-    find_package(Curses REQUIRED)
-    target_include_directories(spaceinvaders PRIVATE ${CURSES_INCLUDE_DIRS})
-    target_link_libraries(spaceinvaders PRIVATE ${CURSES_LIBRARIES})
-endif()
-
-'@
-
-Write-File "src\main.cpp" @'
-#include <curses.h>
-
-int main() {
-    initscr();
-    printw("Tutto pronto! Premi un tasto per uscire.");
-    refresh();
-    getch();
-    endwin();
-    return 0;
-}
-
-'@
-
-Write-File ".gitignore" @'
-build/
-
-'@
-
-Write-File ".vscode\tasks.json" @'
-{
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "configura",
-            "type": "shell",
-            "command": "cmake -S . -B build",
-            "problemMatcher": []
-        },
-        {
-            "label": "compila",
-            "type": "shell",
-            "command": "cmake --build build",
-            "dependsOn": "configura",
-            "group": { "kind": "build", "isDefault": true },
-            "problemMatcher": "$gcc"
-        },
-        {
-            "label": "esegui",
-            "type": "shell",
-            "command": "./spaceinvaders",
-            "options": { "cwd": "${workspaceFolder}/build" },
-            "dependsOn": "compila",
-            "presentation": { "focus": true, "panel": "dedicated" },
-            "problemMatcher": []
-        }
-    ]
-}
-
-'@
+Get-ChildItem -Force $src | Copy-Item -Destination $Dir -Recurse -Force   # -Force: anche .gitignore e .vscode se risultano nascosti
 
 Write-Host "Creato il progetto in $Dir, provo a compilarlo:"
 Push-Location $Dir
