@@ -5,7 +5,7 @@
             "label": "compila",
             "type": "shell",
             "command": "bash check.sh",
-            "windows": { "command": ".\\check.bat" },
+            "windows": { "command": ".\\check.bat --no-pause" },
             "group": { "kind": "build", "isDefault": true },
             "problemMatcher": "$gcc"
         },
@@ -13,7 +13,7 @@
             "label": "esegui",
             "type": "shell",
             "command": "bash check.sh --run",
-            "windows": { "command": ".\\check.bat --run" },
+            "windows": { "command": ".\\check.bat --run --no-pause" },
             "presentation": { "focus": true, "panel": "dedicated" },
             "problemMatcher": "$gcc"
         }

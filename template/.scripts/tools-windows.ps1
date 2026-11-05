@@ -30,6 +30,13 @@ function Install-Msys2 {
 
 # i comandi di pacman si lanciano nella shell di MSYS2
 function Msys($cmd) {
+    # un pacman interrotto (finestra chiusa durante l'aggiornamento) lascia il database bloccato
+    $lock = "$MSYS\var\lib\pacman\db.lck"
+    if (Get-Process pacman -ErrorAction SilentlyContinue) {
+        Write-Host "pacman è già in esecuzione (un'altra finestra di MSYS2?): aspetto che finisca..."
+        Wait-Process pacman
+    }
+    if (Test-Path $lock) { Remove-Item $lock -Force }
     $env:MSYSTEM = "UCRT64"
     & "$MSYS\usr\bin\bash.exe" -lc $cmd | Out-Host
 }

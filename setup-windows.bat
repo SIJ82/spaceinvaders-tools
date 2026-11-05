@@ -28,6 +28,6 @@ if errorlevel 1 (
 )
 
 echo Creato il progetto in %DIR%, controllo gli strumenti e provo a compilarlo:
-call "%DIR%\check.bat"
+call "%DIR%\check.bat" --no-pause
 if not errorlevel 1 echo Fatto. Apri la cartella %DIR% con VS Code: Ctrl+Shift+B compila, il task "esegui" lancia il gioco.
 pause

@@ -89,11 +89,14 @@ check_sources() {
 # --- main ------------------------------------------------------------------------
 main() {
     local run=0 out
-    case ${1:-} in
-        "") ;;
-        --run|-r) run=1 ;;
-        *) die "uso: bash check.sh [--run]" ;;
-    esac
+    local arg
+    for arg in "$@"; do
+        case $arg in
+            --run|-r) run=1 ;;
+            --no-pause) ;;  # di check.bat
+            *) die "uso: bash check.sh [--run]" ;;
+        esac
+    done
     # su Windows (bash di MSYS2) aggiornamento e strumenti li ha già fatti check.bat
     if [[ -z ${MSYSTEM:-} ]]; then
         check_update "$@"

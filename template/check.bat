@@ -3,13 +3,17 @@ rem Controllo e compilazione del progetto Space Invaders (Programmazione A.A. 20
 rem Aggiorna gli script se c'e' una versione nuova (qui e non in .scripts: cosi' si aggiornano anche se
 rem .scripts non funziona), controlla gli strumenti con .scripts\tools-windows.ps1, poi lancia check.sh
 rem con la bash di MSYS2 per il controllo del codice e la compilazione.
-rem Uso: check.bat [--run]
+rem Uso: check.bat [--run] [--no-pause]
+rem In caso di errore aspetta un tasto (lanciato con doppio clic la finestra si chiuderebbe); --no-pause per i task di VS Code.
 setlocal
 cd /d "%~dp0"
 set REPO=SIJ82/spaceinvaders-tools
 rem curl e tar di Windows con il percorso completo: nel PATH puo' esserci prima MSYS2
 set CURL=%SystemRoot%\System32\curl.exe
 set TAR=%SystemRoot%\System32\tar.exe
+set RC=
+set PAUSE=1
+echo %* | find /i "--no-pause" >nul && set PAUSE=
 
 rem --- aggiornamenti: ultima versione dal redirect di releases/latest, stampata solo se piu' recente di .scripts\VERSION
 set LATEST=
@@ -35,16 +39,21 @@ copy /y "%NEW%\check.bat" "%~f0" >nul & "%~f0" %*
 :tools
 if not exist .scripts\tools-windows.ps1 (
     echo Manca la cartella .scripts: riscarica il progetto con setup-windows.bat.
-    exit /b 1
+    set RC=1
+    goto end
 )
 powershell -NoProfile -ExecutionPolicy Bypass -File .scripts\tools-windows.ps1
-if errorlevel 1 exit /b 1
+if errorlevel 1 goto end
 
 rem UCRT64: nel PATH ci sono g++, cmake e ninja; CHERE_INVOKING: la shell di login resta in questa cartella
 set MSYSTEM=UCRT64
 set CHERE_INVOKING=1
 C:\msys64\usr\bin\bash.exe -l check.sh %*
-exit /b %errorlevel%
+
+:end
+if not defined RC set RC=%errorlevel%
+if not "%RC%"=="0" if defined PAUSE pause
+exit /b %RC%
 
 rem CMakeLists.txt e tasks.json (%1): si sostituiscono con la versione nuova (%2) da soli se sono ancora quelli
 rem del template (%3, la copia originale in .scripts\orig), altrimenti si chiede; la versione dello studente resta in .bak
